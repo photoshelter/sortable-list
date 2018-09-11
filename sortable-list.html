@@ -39,9 +39,9 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
     }
 
     function dragstart(evt) {
-      var index = getIndex(this);
+      var index = String(getIndex(this));
       evt.dataTransfer.effectAllowed = "move";
-      evt.dataTransfer.setData("index", index);
+      evt.dataTransfer.setData("text", index);
     }
 
     function dragover(evt) {
@@ -60,7 +60,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       }
 
       var current = Number(getIndex(target));
-      var move = Number(evt.dataTransfer.getData("index"));
+      var move = Number(evt.dataTransfer.getData("text"));
 
       // set the underlying Array model new order
       if (move !== current) {
