@@ -42,11 +42,18 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       var index = getIndex(this);
       evt.dataTransfer.effectAllowed = "move";
       evt.dataTransfer.setData("index", index);
+      this.classList.add('dragged');
     }
 
     function dragover(evt) {
       evt.preventDefault();
       evt.dataTransfer.dropEffect = "move";
+    }
+
+    function dragleave(evt) {
+      evt.preventDefault();
+      evt.target.classList.remove('dragOverBottom');
+      evt.target.classList.remove('dragOverTop');
     }
 
     function handledrop(evt) {
@@ -55,12 +62,22 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
 
       // Move up the dom tree until you find the direct child of SORTABLE-LIST
       var target = evt.target;
+      target.classList.remove('dragOverBottom');
+      target.classList.remove('dragOverTop');
+      target.classList.remove('dragged');
+
       while(target.parentNode.tagName !== 'SORTABLE-LIST') {
         target = target.parentNode;
       }
 
       var current = Number(getIndex(target));
       var move = Number(evt.dataTransfer.getData("index"));
+
+      if(current > move && this.direction === 'up') {
+        current = current - 1;
+      } else if (current < move && this.direction === 'down') {
+        current = current + 1;
+      }
 
       // set the underlying Array model new order
       if (move !== current) {
@@ -117,9 +134,38 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           if (!item.getAttribute('draggable') && !!handle) {
             handle.setAttribute('draggable', true);
             item.addEventListener('dragstart', dragstart, false);
-            item.addEventListener('dragover', dragover, false);
+            item.addEventListener('dragover', this.dragover.bind(this), false);
+            item.addEventListener('dragleave', dragleave, false);
           }
         }.bind(this));
+      },
+
+
+      dragover: function(evt) {
+        evt.preventDefault();
+        evt.dataTransfer.dropEffect = "move";
+        let currentY = evt.clientY;
+        let previousY = this.previousY;
+        if (currentY > previousY) {
+          this.direction = 'down'
+        } else if (previousY > currentY) {
+          this.direction = 'up'
+        }
+        this.previousY = currentY;
+        this.addDropTargetIndicator(evt.target);
+      },
+
+      addDropTargetIndicator: function(target) {
+        if(this.direction === 'up') {
+          target.classList.add('dragOverTop');
+          target.classList.remove('dragOverBottom');
+        } else if (this.direction === 'down') {
+          target.classList.add('dragOverBottom');
+          target.classList.remove('dragOverTop');
+        } else {
+          target.classList.remove('dragOverTop');
+          target.classList.remove('dragOverBottom');
+        }
       },
 
       attached: function() {
