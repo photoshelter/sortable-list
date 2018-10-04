@@ -1,5 +1,5 @@
 <link rel="import" href="../polymer/polymer.html">
-
+<link rel="import" href="../tripod-input-behaviors/tripod-pointer-tracking-behavior.html">
 <!--
 # sortable-list
 `<sortable-list>`
@@ -33,73 +33,6 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
   </template>
 
   <script>
-    function getIndex(node) {
-      var children = node.parentNode.children;
-      return [].indexOf.call(children, node);
-    }
-
-    function dragstart(evt) {
-      var index = getIndex(this);
-      evt.dataTransfer.effectAllowed = "move";
-      evt.dataTransfer.setData("index", index);
-      this.classList.add('dragged');
-    }
-
-    function dragover(evt) {
-      evt.preventDefault();
-      evt.dataTransfer.dropEffect = "move";
-    }
-
-    function dragleave(evt) {
-      evt.preventDefault();
-      evt.target.classList.remove('dragOverBottom');
-      evt.target.classList.remove('dragOverTop');
-    }
-
-    function handledrop(evt) {
-      evt.preventDefault();
-      evt.dataTransfer.dropEffect = "move";
-
-      // Move up the dom tree until you find the direct child of SORTABLE-LIST
-      var target = evt.target;
-      target.classList.remove('dragOverBottom');
-      target.classList.remove('dragOverTop');
-      target.classList.remove('dragged');
-
-      while(target.parentNode.tagName !== 'SORTABLE-LIST') {
-        target = target.parentNode;
-      }
-
-      var current = Number(getIndex(target));
-      var move = Number(evt.dataTransfer.getData("index"));
-
-      if(current > move && this.direction === 'up') {
-        current = current - 1;
-      } else if (current < move && this.direction === 'down') {
-        current = current + 1;
-      }
-
-      // set the underlying Array model new order
-      if (move !== current) {
-        var repeat;
-        if(Polymer.Element){
-          // 2.x
-          repeat = this.querySelector('dom-repeat');
-        }else {
-          repeat = this.querySelector("template[is='dom-repeat']");
-        }
-
-        var data = repeat.items;
-        var item = data.splice(move, 1);
-        data.splice(current, null, item[0]);
-        repeat.notifySplices('items', [
-          { index: move, removed: [item], addedCount: 0, object: data, type: "splice" },
-          { index: current, removed: [], addedCount: 1, object: data, type: "splice" }
-        ]);
-        this.fire('sort');
-      }
-    }
-
     Polymer({
 
       is: 'sortable-list',
@@ -116,6 +49,17 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
          },
        },
 
+       /**
+        * get the index of the chid relative to its parentNode
+       **/
+       getIndex: function(node) {
+         var children = node.parentNode.children;
+         return [].indexOf.call(children, node);
+       },
+
+       /**
+        * Add all drag events listeners to list items
+      **/
       _addlisteners: function() {
         var self = this;
         var nodes = this.getEffectiveChildren();
@@ -133,28 +77,84 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           }
           if (!item.getAttribute('draggable') && !!handle) {
             handle.setAttribute('draggable', true);
-            item.addEventListener('dragstart', dragstart, false);
-            item.addEventListener('dragover', this.dragover.bind(this), false);
-            item.addEventListener('dragleave', dragleave, false);
+            item.addEventListener('dragstart', this.dragstart, false);
+            item.addEventListener('drag', this.drag, false);
+            item.addEventListener('dragover', this.dragover, false);
+            item.addEventListener('dragleave', this.dragleave, false);
+            item.addEventListener('dragend', this.dragend, false);
           }
         }.bind(this));
       },
 
+      /**
+       * On drag start, set drag image to the target. Add className `dragged` to event target
+       * Transfer target's index via evt.dataTransfer
+      **/
+      dragstart: function(evt) {
+        var sortableList = evt.target.parentNode;
+        var index = String(sortableList.getIndex(evt.target));
+        evt.dataTransfer.effectAllowed = "move";
+        evt.dataTransfer.setData("text", index);
+        evt.target.classList.add('dragged');
 
-      dragover: function(evt) {
-        evt.preventDefault();
-        evt.dataTransfer.dropEffect = "move";
-        let currentY = evt.clientY;
-        let previousY = this.previousY;
-        if (currentY > previousY) {
-          this.direction = 'down'
-        } else if (previousY > currentY) {
-          this.direction = 'up'
+        var sortableList = evt.target.parentNode;
+        if (sortableList.isEdge) {
+          sortableList.setDragImageEdge(evt.target, sortableList, evt.x, evt.y);
+        } else {
+          evt.dataTransfer.setDragImage(evt.target, 0, 0);
         }
-        this.previousY = currentY;
-        this.addDropTargetIndicator(evt.target);
       },
 
+      /**
+       * Edge does not support dataTransfer.setDragImage. This is a hack solution.
+       * Clone the node that's being dragged, position it absolutely to the mouse
+      **/
+      setDragImageEdge: function(draggedTarget, sortableList, x, y) {
+        sortableList.ghostEl = draggedTarget.cloneNode();
+        sortableList.ghostEl.style = draggedTarget.style;
+        sortableList.ghostEl.style.position = 'absolute';
+        sortableList.ghostEl.style.top = y + 'px';
+        // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
+        sortableList.ghostEl.style.left = x + 5 + 'px';
+        sortableList.ghostEl.style.opacity = 0.6;
+        sortableList.ghostEl.style.zIndex = '1';
+        sortableList.ghostEl.style.width = draggedTarget.offsetWidth + 'px';
+        sortableList.ghostEl.item = draggedTarget.item;
+        document.body.appendChild(sortableList.ghostEl);
+      },
+
+      /**
+       * For edge update the location of the ghostEl to follow the mouse
+      **/
+      drag: function(evt) {
+        let sortableList = evt.target.parentNode
+        if(sortableList.isEdge) {
+          sortableList.ghostEl.style.top = evt.y + 'px';
+          // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
+          sortableList.ghostEl.style.left = evt.x  + 5 + 'px';
+        }
+      },
+
+      /**
+       * determine drag direction when dragging over. Add drop location indicator according to direction
+      **/
+      dragover: function(evt) {
+        evt.preventDefault();
+        let sortableList = evt.target.parentNode;
+        let currentY = evt.clientY;
+        let previousY = sortableList.previousY;
+        if (currentY > previousY) {
+          sortableList.direction = 'down'
+        } else if (previousY > currentY) {
+          sortableList.direction = 'up'
+        }
+        sortableList.previousY = currentY;
+        sortableList.addDropTargetIndicator(evt.target);
+      },
+
+      /**
+       * Toggling css classNames according to mouse movement direction
+      **/
       addDropTargetIndicator: function(target) {
         if(this.direction === 'up') {
           target.classList.add('dragOverTop');
@@ -168,11 +168,87 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         }
       },
 
+      /**
+       * Remove drop location indicator css classNames when drag leaves
+      **/
+      dragleave: function(evt) {
+        evt.preventDefault();
+        evt.target.classList.remove('dragOverBottom');
+        evt.target.classList.remove('dragOverTop');
+      },
+
+      /**
+       * On drag end, remove the className `dragged` from item that was being dragged
+       * For edge remove the ghostEl from document.body
+      **/
+      dragend: function(evt){
+        evt.preventDefault();
+        // remove dragged state styling class
+        let sortableList = evt.target.parentNode
+        sortableList.querySelector('.dragged').classList.remove('dragged');
+        if(sortableList.isEdge) {
+          // remove ghostEl from DOM
+          document.body.removeChild(sortableList.ghostEl);
+          sortableList.ghostEl = null;
+        }
+      },
+
+
+      /**
+       * Handle drop event
+      **/
+      handledrop: function(evt) {
+        evt.preventDefault();
+        evt.dataTransfer.dropEffect = "move";
+        var target = evt.target;
+        // Move up the dom tree until you find the direct child of SORTABLE-LIST
+        while(target.parentNode.tagName !== 'SORTABLE-LIST') {
+          target = target.parentNode;
+        }
+
+        // determine splice location
+        var current = this.getIndex(target);
+        var move = Number(evt.dataTransfer.getData("text"));
+        if(current > move && this.direction === 'up') {
+          current = current - 1;
+        } else if (current < move && this.direction === 'down') {
+          current = current + 1;
+        }
+
+        // set the underlying Array model new order
+        if (move !== current) {
+          var repeat;
+          if(Polymer.Element){
+            // 2.x
+            repeat = this.querySelector('dom-repeat');
+          }else {
+            repeat = this.querySelector("template[is='dom-repeat']");
+          }
+
+          var data = repeat.items;
+          var item = data.splice(move, 1);
+          data.splice(current, null, item[0]);
+          repeat.notifySplices('items', [
+            { index: move, removed: [item], addedCount: 0, object: data, type: "splice" },
+            { index: current, removed: [], addedCount: 1, object: data, type: "splice" }
+          ]);
+          this.fire('sort');
+        }
+
+        // remove drag over state css classes
+        target.classList.remove('dragOverBottom');
+        target.classList.remove('dragOverTop');
+      },
+
+      /**
+       * Add drop event listener to list, add drag events listeners to list items
+      **/
       attached: function() {
         var self = this;
+        this.isEdge = !!navigator.userAgent.match(/edge/i);
 
         this.async(function() {
-          self.addEventListener('drop', handledrop, false);
+          self.addEventListener('drop', this.handledrop, false);
           var repeat;
 
           if(Polymer.Element){
@@ -184,10 +260,9 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           repeat.addEventListener('dom-change', function() {
             self._addlisteners();
           });
-
           self._addlisteners();
         });
-      }
+      },
     });
   </script>
 </dom-module>
