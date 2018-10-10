@@ -89,15 +89,14 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       /**
        * On drag start, set drag image to the target. Add className `dragged` to event target
        * Transfer target's index via evt.dataTransfer
-      **/
+       */
       dragstart: function(evt) {
         var sortableList = evt.target.parentNode;
         var index = String(sortableList.getIndex(evt.target));
         evt.dataTransfer.effectAllowed = "move";
         evt.dataTransfer.setData("text", index);
         evt.target.classList.add('dragged');
-
-        var sortableList = evt.target.parentNode;
+        // EDGE does not support setDragImage natively
         if (sortableList.isEdge) {
           sortableList.setDragImageEdge(evt.target, sortableList, evt.x, evt.y);
         } else {
@@ -108,19 +107,21 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       /**
        * Edge does not support dataTransfer.setDragImage. This is a hack solution.
        * Clone the node that's being dragged, position it absolutely to the mouse
-      **/
+       */
       setDragImageEdge: function(draggedTarget, sortableList, x, y) {
-        sortableList.ghostEl = draggedTarget.cloneNode();
-        sortableList.ghostEl.style = draggedTarget.style;
-        sortableList.ghostEl.style.position = 'absolute';
+        if (!sortableList.ghostEl){
+          sortableList.ghostEl = draggedTarget.cloneNode();
+          sortableList.ghostEl.style = draggedTarget.style;
+          sortableList.ghostEl.style.position = 'absolute';
+        }
         sortableList.ghostEl.style.top = y + 'px';
         // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
         sortableList.ghostEl.style.left = x + 5 + 'px';
         sortableList.ghostEl.style.opacity = 0.6;
         sortableList.ghostEl.style.zIndex = '1';
         sortableList.ghostEl.style.width = draggedTarget.offsetWidth + 'px';
+        sortableList.ghostEl.style.display = 'block';
         sortableList.ghostEl.item = draggedTarget.item;
-        document.body.appendChild(sortableList.ghostEl);
       },
 
       /**
@@ -188,7 +189,8 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         sortableList.querySelector('.dragged').classList.remove('dragged');
         if(sortableList.isEdge) {
           // remove ghostEl from DOM
-          document.body.removeChild(sortableList.ghostEl);
+          // document.body.removeChild(sortableList.ghostEl);
+          sortableList.ghostEl.style.display = 'none';
           sortableList.ghostEl = null;
         }
       },
