@@ -1,5 +1,4 @@
 <link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../tripod-input-behaviors/tripod-pointer-tracking-behavior.html">
 <!--
 # sortable-list
 `<sortable-list>`
@@ -91,16 +90,16 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
        * Transfer target's index via evt.dataTransfer
        */
       dragstart: function(evt) {
-        var sortableList = evt.target.parentNode;
-        var index = String(sortableList.getIndex(evt.target));
+        var sortableList = this.parentNode;
+        var index = String(sortableList.getIndex(this));
         evt.dataTransfer.effectAllowed = "move";
         evt.dataTransfer.setData("text", index);
-        evt.target.classList.add('dragged');
+        this.classList.add('dragged');
         // EDGE does not support setDragImage natively
         if (sortableList.isEdge) {
-          sortableList.setDragImageEdge(evt.target, sortableList, evt.x, evt.y);
+          sortableList.setDragImageEdge(this, sortableList, evt.x, evt.y);
         } else {
-          evt.dataTransfer.setDragImage(evt.target, 0, 0);
+          evt.dataTransfer.setDragImage(this, 0, 0);
         }
       },
 
@@ -128,7 +127,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
        * For edge update the location of the ghostEl to follow the mouse
       **/
       drag: function(evt) {
-        let sortableList = evt.target.parentNode
+        let sortableList = this.parentNode
         if(sortableList.isEdge) {
           sortableList.ghostEl.style.top = evt.y + 'px';
           // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
@@ -141,7 +140,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       **/
       dragover: function(evt) {
         evt.preventDefault();
-        let sortableList = evt.target.parentNode;
+        let sortableList = this.parentNode;
         let currentY = evt.clientY;
         let previousY = sortableList.previousY;
         if (currentY > previousY) {
@@ -150,7 +149,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           sortableList.direction = 'up'
         }
         sortableList.previousY = currentY;
-        sortableList.addDropTargetIndicator(evt.target);
+        sortableList.addDropTargetIndicator(this);
       },
 
       /**
@@ -174,8 +173,8 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       **/
       dragleave: function(evt) {
         evt.preventDefault();
-        evt.target.classList.remove('dragOverBottom');
-        evt.target.classList.remove('dragOverTop');
+        this.classList.remove('dragOverBottom');
+        this.classList.remove('dragOverTop');
       },
 
       /**
@@ -185,7 +184,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       dragend: function(evt){
         evt.preventDefault();
         // remove dragged state styling class
-        let sortableList = evt.target.parentNode
+        let sortableList = this.parentNode
         sortableList.querySelector('.dragged').classList.remove('dragged');
         if(sortableList.isEdge) {
           // remove ghostEl from DOM
