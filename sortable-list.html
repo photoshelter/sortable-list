@@ -96,7 +96,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         evt.dataTransfer.setData("text", index);
         this.classList.add('dragged');
         // EDGE does not support setDragImage natively
-        if (sortableList.isEdge) {
+        if (sortableList.isEdge || sortableList.isIE) {
           sortableList.setDragImageEdge(this, sortableList, evt.x, evt.y);
         } else {
           evt.dataTransfer.setDragImage(this, 0, 0);
@@ -112,6 +112,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           sortableList.ghostEl = draggedTarget.cloneNode();
           sortableList.ghostEl.style = draggedTarget.style;
           sortableList.ghostEl.style.position = 'absolute';
+          document.body.appendChild(sortableList.ghostEl);
         }
         sortableList.ghostEl.style.top = y + 'px';
         // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
@@ -128,7 +129,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       **/
       drag: function(evt) {
         let sortableList = this.parentNode
-        if(sortableList.isEdge) {
+        if(sortableList.isEdge || sortableList.isIE) {
           sortableList.ghostEl.style.top = evt.y + 'px';
           // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
           sortableList.ghostEl.style.left = evt.x  + 5 + 'px';
@@ -186,11 +187,9 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         // remove dragged state styling class
         let sortableList = this.parentNode
         sortableList.querySelector('.dragged').classList.remove('dragged');
-        if(sortableList.isEdge) {
-          // remove ghostEl from DOM
-          // document.body.removeChild(sortableList.ghostEl);
+        if(sortableList.isEdge || sortableList.isIE) {
+          // hide ghostEl
           sortableList.ghostEl.style.display = 'none';
-          sortableList.ghostEl = null;
         }
       },
 
@@ -247,6 +246,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       attached: function() {
         var self = this;
         this.isEdge = !!navigator.userAgent.match(/edge/i);
+        this.isIE = !!navigator.userAgent.match(/Trident/i);
 
         this.async(function() {
           self.addEventListener('drop', this.handledrop, false);
