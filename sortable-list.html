@@ -105,13 +105,13 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
 
       /**
        * Edge does not support dataTransfer.setDragImage. This is a hack solution.
-       * Clone the node that's being dragged, position it absolutely to the mouse
+       * Clone the node that's being dragged, position it to be fixed to the mouse
        */
       setDragImageEdge: function(draggedTarget, sortableList, x, y) {
         if (!sortableList.ghostEl){
           sortableList.ghostEl = draggedTarget.cloneNode();
           sortableList.ghostEl.style = draggedTarget.style;
-          sortableList.ghostEl.style.position = 'absolute';
+          sortableList.ghostEl.style.position = 'fixed';
           document.body.appendChild(sortableList.ghostEl);
         }
         sortableList.ghostEl.style.top = y + 'px';
