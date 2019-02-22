@@ -93,7 +93,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         var sortableList = this.parentNode;
         var index = String(sortableList.getIndex(this));
         evt.dataTransfer.effectAllowed = "move";
-        evt.dataTransfer.setData("text", index);
+        evt.dataTransfer.setData("text", index+','+sortableList.group);
         this.classList.add('dragged');
         // EDGE does not support setDragImage natively
         if (sortableList.isEdge || sortableList.isIE) {
@@ -193,6 +193,34 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         }
       },
 
+      handleGroupMove: function(fromGroup, toGroup, removeIndex, addIndex) {
+        let evt = new CustomEvent('move-across-group', {bubbles: true, composed: true, detail: {
+          fromGroup: fromGroup,
+          toGroup: toGroup,
+          removeIndex: removeIndex,
+          addIndex: addIndex
+        }});
+        this.dispatchEvent(evt);
+      },
+
+      handleLocalMove: function(move, current) {
+        var repeat;
+        if(Polymer.Element){
+          // 2.x
+          repeat = this.querySelector('dom-repeat');
+        }else {
+          repeat = this.querySelector("template[is='dom-repeat']");
+        }
+
+        var data = repeat.items;
+        var item = data.splice(move, 1);
+        data.splice(current, null, item[0]);
+        repeat.notifySplices('items', [
+          { index: move, removed: [item], addedCount: 0, object: data, type: "splice" },
+          { index: current, removed: [], addedCount: 1, object: data, type: "splice" }
+        ]);
+        this.fire('sort');
+      },
 
       /**
        * Handle drop event
@@ -208,33 +236,25 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
 
         // determine splice location
         var current = this.getIndex(target);
-        var move = Number(evt.dataTransfer.getData("text"));
-        if(current > move && this.direction === 'up') {
-          current = current - 1;
-        } else if (current < move && this.direction === 'down') {
-          current = current + 1;
-        }
+        var move = Number(evt.dataTransfer.getData("text").split(',')[0]);
+        var group = evt.dataTransfer.getData("text").split(',')[1];
 
-        // set the underlying Array model new order
-        if (move !== current) {
-          var repeat;
-          if(Polymer.Element){
-            // 2.x
-            repeat = this.querySelector('dom-repeat');
-          }else {
-            repeat = this.querySelector("template[is='dom-repeat']");
+        if(group !== this.group) {
+          if (this.direction === 'down') {
+            current = current + 1;
           }
-
-          var data = repeat.items;
-          var item = data.splice(move, 1);
-          data.splice(current, null, item[0]);
-          repeat.notifySplices('items', [
-            { index: move, removed: [item], addedCount: 0, object: data, type: "splice" },
-            { index: current, removed: [], addedCount: 1, object: data, type: "splice" }
-          ]);
-          this.fire('sort');
+          this.handleGroupMove(group, this.group, move, current);
+        } else {
+          if(current > move && this.direction === 'up') {
+            current = current - 1;
+          } else if (current < move && this.direction === 'down') {
+            current = current + 1;
+          }
+          // set the underlying Array model new order
+          if (move !== current) {
+            this.handleLocalMove(move, current);
+          }
         }
-
         // remove drag over state css classes
         target.classList.remove('dragOverBottom');
         target.classList.remove('dragOverTop');
