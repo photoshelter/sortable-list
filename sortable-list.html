@@ -199,6 +199,14 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         }
       },
 
+      /**
+      * function handles moving item into this list from another list
+      * fire an event up with origin group, destination group, origin index and destination index
+      * @param {String} fromGroup
+      * @param {String} toGroup
+      * @param {Number} removeIndex
+      * @param {Number} addIndex
+      */
       _handleGroupMove: function(fromGroup, toGroup, removeIndex, addIndex) {
         let evt = new CustomEvent('move-across-group', {bubbles: true, composed: true, detail: {
           fromGroup: fromGroup,
@@ -209,6 +217,11 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         this.dispatchEvent(evt);
       },
 
+      /**
+      * function handles moving item within this list, from index `move` to index `current`
+      * @param {Number} move
+      * @param {Number} current
+      */
       _handleLocalMove: function(move, current) {
         var repeat;
         if(Polymer.Element){
