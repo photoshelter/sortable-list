@@ -199,7 +199,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         }
       },
 
-      handleGroupMove: function(fromGroup, toGroup, removeIndex, addIndex) {
+      _handleGroupMove: function(fromGroup, toGroup, removeIndex, addIndex) {
         let evt = new CustomEvent('move-across-group', {bubbles: true, composed: true, detail: {
           fromGroup: fromGroup,
           toGroup: toGroup,
@@ -209,7 +209,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         this.dispatchEvent(evt);
       },
 
-      handleLocalMove: function(move, current) {
+      _handleLocalMove: function(move, current) {
         var repeat;
         if(Polymer.Element){
           // 2.x
@@ -249,7 +249,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           if (this.direction === 'down') {
             current = current + 1;
           }
-          this.handleGroupMove(group, this.group, move, current);
+          this._handleGroupMove(group, this.group, move, current);
         } else {
           if(current > move && this.direction === 'up') {
             current = current - 1;
@@ -258,7 +258,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           }
           // set the underlying Array model new order
           if (move !== current) {
-            this.handleLocalMove(move, current);
+            this._handleLocalMove(move, current);
           }
         }
         // remove drag over state css classes
