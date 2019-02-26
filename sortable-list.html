@@ -83,7 +83,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
             item.addEventListener('dragleave', this.dragleave, false);
             item.addEventListener('dragend', this.dragend, false);
           }
-          if(item.id === 'emptyState') {
+          if(item.slot === 'emptyState') {
             item.addEventListener('dragover', function(e) {
               e.preventDefault();
             });
