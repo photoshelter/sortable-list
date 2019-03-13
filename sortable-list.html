@@ -126,7 +126,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           sortableList.ghostEl = sortableList.buildGhost(draggedTarget);
           document.body.appendChild(sortableList.ghostEl);
         }
-        // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
+        // HACK: +5px offset so drag ghost does not intercept drgover events
         let ghostStyles = {
           "left": x + 5 + "px",
           "top": y + "px",
@@ -142,11 +142,9 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
        * For edge update the location of the ghostEl to follow the mouse
       **/
       drag: function(evt) {
-        let sortableList = this.parentNode
+        let sortableList = this.parentNode;
         if(sortableList.isEdge || sortableList.isIE) {
-          sortableList.ghostEl.style.top = evt.y + 'px';
-          // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
-          sortableList.ghostEl.style.left = evt.x  + 5 + 'px';
+          sortableList._moveDragGhost(evt.x, evt.y);
         }
       },
 
@@ -198,12 +196,14 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       **/
       dragend: function(evt){
         evt.preventDefault();
+        let sortableList = this.parentNode;
         // remove dragged state styling class
-        let sortableList = this.parentNode
         sortableList.querySelector('.dragged').classList.remove('dragged');
         if(sortableList.isEdge || sortableList.isIE) {
+          // Remove ghost element from document.body
           document.body.removeChild(sortableList.ghostEl);
         } else if (sortableList.isFF) {
+          // Remove ghost element from sortable list
           sortableList.removeChild(sortableList.ghostEl);
         }
       },
@@ -314,20 +314,39 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         });
       },
 
+      /**
+       * Pass the dragged element to createDraggingGhost and return the created ghost element
+       * @param {Element} listItem
+       */
       buildGhost: function(listItem) {
         let ghostEl = this.createDraggingGhost(listItem);
         return ghostEl;
       },
 
+      /**
+       * Create a default dragging ghost element, when it has not been overriden.
+       */
       createDraggingGhost: function() {
         let div = document.createElement('div');
-        div.innerHTML = 'I AM A GHOST';
+        div.innerHTML = 'Dragging Item';
         return div;
       },
 
+      /**
+       * Set the top and left to be off screen
+       */
       _setGhostOffscreen: function(ghostEl) {
         ghostEl.style.top = "-10000px";
         ghostEl.style.left = "-10000px";
+      },
+
+      /**
+       * Set drag ghost's top and left so it follows the mouse
+       */
+      _moveDragGhost: function(x, y) {
+        this.ghostEl.style.top = y + 'px';
+        // HACK: +5px offset so drag ghost does not intercept drgover events
+        this.ghostEl.style.left = x  + 5 + 'px';
       }
 
     });
