@@ -101,14 +101,18 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         evt.dataTransfer.effectAllowed = "move";
         evt.dataTransfer.setData("text", index+','+sortableList.group);
         this.classList.add('dragged');
-        // EDGE does not support setDragImage natively
+
         if (sortableList.isEdge || sortableList.isIE || sortableList.isFF) {
           sortableList.ghostEl = sortableList.buildGhost(this);
           if (sortableList.isFF) {
+            // FF does support setDragImage but drag image does not render anything in a shadowRoot
             sortableList.appendChild(sortableList.ghostEl);
             sortableList._setGhostOffscreen(sortableList.ghostEl);
             evt.dataTransfer.setDragImage(sortableList.ghostEl, 0, 0);
           } else {
+            // EDGE and IE does not support setDragImage natively
+            // make ghostEl follow the mouse around to create the illusion of dragImage
+            // in order for that to happen, ghostEl must be appended to document.body
             document.body.appendChild(sortableList.ghostEl);
             sortableList.setDragImageEdge(this, sortableList, evt.x, evt.y);
           }
@@ -119,7 +123,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
 
       /**
        * Edge does not support dataTransfer.setDragImage. This is a hack solution.
-       * Clone the node that's being dragged, position it to be fixed to the mouse
+       * Have the ghostEl follow the mouse around.
        */
       setDragImageEdge: function(draggedTarget, sortableList, x, y) {
         if (!sortableList.ghostEl) {
@@ -324,7 +328,9 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       },
 
       /**
-       * Create a default dragging ghost element, when it has not been overriden.
+       * Create a default dragging ghost element, when it is not overridden.
+       * List element wrapping this should override and define how the ghost element should look
+       * Ghost element should NOT contain any shadowDom otherwise it will not work in Firefox
        */
       createDraggingGhost: function() {
         let div = document.createElement('div');
