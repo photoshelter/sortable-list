@@ -101,44 +101,62 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         evt.dataTransfer.effectAllowed = "move";
         evt.dataTransfer.setData("text", index+','+sortableList.group);
         this.classList.add('dragged');
-        // EDGE does not support setDragImage natively
-        if (sortableList.isEdge || sortableList.isIE) {
-          sortableList.setDragImageEdge(this, sortableList, evt.x, evt.y);
+
+        if (sortableList.isEdge || sortableList.isIE || sortableList.isFF) {
+          sortableList._dragImageWorkarounds(evt.dataTransfer);
         } else {
           evt.dataTransfer.setDragImage(this, 0, 0);
         }
       },
 
       /**
+       * Set drag image workarounds for FF, Edge and IE.
+       * FF supports setDragImage but drag image does not render anything in a shadowRoot,
+       * so we just have to point setDragImage to ghostEl, which has no shadowRoots.
+       * EDGE and IE does not support setDragImage natively,
+       * make ghostEl follow the mouse around to create the illusion of dragImage, hence ghostEl must be appended to document.body
+       * @param {Object} dataTransfer
+       */
+      _dragImageWorkarounds: function(dataTransfer) {
+        this.ghostEl = this.buildGhost(this);
+        if (this.isFF) {
+          this.appendChild(this.ghostEl);
+          this._setGhostOffscreen(this.ghostEl);
+          dataTransfer.setDragImage(this.ghostEl, 0, 0);
+        } else {
+          document.body.appendChild(this.ghostEl);
+          this.setDragImageEdge(this, this, evt.x, evt.y);
+        }
+      },
+
+      /**
        * Edge does not support dataTransfer.setDragImage. This is a hack solution.
-       * Clone the node that's being dragged, position it to be fixed to the mouse
+       * Have the ghostEl follow the mouse around.
        */
       setDragImageEdge: function(draggedTarget, sortableList, x, y) {
-        if (!sortableList.ghostEl){
-          sortableList.ghostEl = draggedTarget.cloneNode();
-          sortableList.ghostEl.style = draggedTarget.style;
-          sortableList.ghostEl.style.position = 'fixed';
+        if (!sortableList.ghostEl) {
+          sortableList.ghostEl = sortableList.buildGhost(draggedTarget);
           document.body.appendChild(sortableList.ghostEl);
         }
-        sortableList.ghostEl.style.top = y + 'px';
-        // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
-        sortableList.ghostEl.style.left = x + 5 + 'px';
-        sortableList.ghostEl.style.opacity = 0.6;
-        sortableList.ghostEl.style.zIndex = '1';
-        sortableList.ghostEl.style.width = draggedTarget.offsetWidth + 'px';
-        sortableList.ghostEl.style.display = 'block';
-        sortableList.ghostEl.item = draggedTarget.item;
+        // HACK: +5px offset so drag ghost does not intercept drgover events
+        let ghostStyles = {
+          "left": x + 5 + "px",
+          "top": y + "px",
+          "opacity": 0.6,
+          "zIndex": "1"
+        };
+        Object.keys(ghostStyles).forEach((property)=>{
+          sortableList.ghostEl.style[property] = ghostStyles[property]
+        });
       },
 
       /**
        * For edge update the location of the ghostEl to follow the mouse
       **/
       drag: function(evt) {
-        let sortableList = this.parentNode
+        let sortableList = this.parentNode;
         if(sortableList.isEdge || sortableList.isIE) {
-          sortableList.ghostEl.style.top = evt.y + 'px';
-          // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
-          sortableList.ghostEl.style.left = evt.x  + 5 + 'px';
+          sortableList._moveDragGhost(evt.x, evt.y);
         }
       },
 
@@ -190,12 +208,15 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       **/
       dragend: function(evt){
         evt.preventDefault();
+        let sortableList = this.parentNode;
         // remove dragged state styling class
-        let sortableList = this.parentNode
         sortableList.querySelector('.dragged').classList.remove('dragged');
         if(sortableList.isEdge || sortableList.isIE) {
-          // hide ghostEl
-          sortableList.ghostEl.style.display = 'none';
+          // Remove ghost element from document.body
+          document.body.removeChild(sortableList.ghostEl);
+        } else if (sortableList.isFF) {
+          // Remove ghost element from sortable list
+          sortableList.removeChild(sortableList.ghostEl);
         }
       },
 
@@ -286,6 +307,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         var self = this;
         this.isEdge = !!navigator.userAgent.match(/edge/i);
         this.isIE = !!navigator.userAgent.match(/Trident/i);
+        this.isFF = !!navigator.userAgent.match(/firefox/i);
 
         this.async(function() {
           self.addEventListener('drop', this.handledrop, false);
@@ -303,6 +325,44 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           self._addlisteners();
         });
       },
+
+      /**
+       * Pass the dragged element to createDraggingGhost and return the created ghost element
+       * @param {Element} listItem
+       */
+      buildGhost: function(listItem) {
+        let ghostEl = this.createDraggingGhost(listItem);
+        return ghostEl;
+      },
+
+      /**
+       * Create a default dragging ghost element, when it is not overridden.
+       * List element wrapping this should override and define how the ghost element should look
+       * Ghost element should NOT contain any shadowDom otherwise it will not work in Firefox
+       */
+      createDraggingGhost: function() {
+        let div = document.createElement('div');
+        div.innerHTML = 'Dragging Item';
+        return div;
+      },
+
+      /**
+       * Set the top and left to be off screen
+       */
+      _setGhostOffscreen: function(ghostEl) {
+        ghostEl.style.top = "-10000px";
+        ghostEl.style.left = "-10000px";
+      },
+
+      /**
+       * Set drag ghost's top and left so it follows the mouse
+       */
+      _moveDragGhost: function(x, y) {
+        this.ghostEl.style.top = y + 'px';
+        // HACK: +5px offset so drag ghost does not intercept drgover events
+        this.ghostEl.style.left = x  + 5 + 'px';
+      }
+
     });
   </script>
 </dom-module>
