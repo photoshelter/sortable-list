@@ -102,8 +102,16 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         evt.dataTransfer.setData("text", index+','+sortableList.group);
         this.classList.add('dragged');
         // EDGE does not support setDragImage natively
-        if (sortableList.isEdge || sortableList.isIE) {
-          sortableList.setDragImageEdge(this, sortableList, evt.x, evt.y);
+        if (sortableList.isEdge || sortableList.isIE || sortableList.isFF) {
+          sortableList.ghostEl = sortableList.buildGhost(this);
+          if (sortableList.isFF) {
+            sortableList.appendChild(sortableList.ghostEl);
+            sortableList._setGhostOffscreen(sortableList.ghostEl);
+            evt.dataTransfer.setDragImage(sortableList.ghostEl, 0, 0);
+          } else {
+            document.body.appendChild(sortableList.ghostEl);
+            sortableList.setDragImageEdge(this, sortableList, evt.x, evt.y);
+          }
         } else {
           evt.dataTransfer.setDragImage(this, 0, 0);
         }
@@ -114,20 +122,20 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
        * Clone the node that's being dragged, position it to be fixed to the mouse
        */
       setDragImageEdge: function(draggedTarget, sortableList, x, y) {
-        if (!sortableList.ghostEl){
-          sortableList.ghostEl = draggedTarget.cloneNode();
-          sortableList.ghostEl.style = draggedTarget.style;
-          sortableList.ghostEl.style.position = 'fixed';
+        if (!sortableList.ghostEl) {
+          sortableList.ghostEl = sortableList.buildGhost(draggedTarget);
           document.body.appendChild(sortableList.ghostEl);
         }
-        sortableList.ghostEl.style.top = y + 'px';
         // FIXME: Adding 5px offset so that the drag over event can fire on the element under the ghostEl
-        sortableList.ghostEl.style.left = x + 5 + 'px';
-        sortableList.ghostEl.style.opacity = 0.6;
-        sortableList.ghostEl.style.zIndex = '1';
-        sortableList.ghostEl.style.width = draggedTarget.offsetWidth + 'px';
-        sortableList.ghostEl.style.display = 'block';
-        sortableList.ghostEl.item = draggedTarget.item;
+        let ghostStyles = {
+          "left": x + 5 + "px",
+          "top": y + "px",
+          "opacity": 0.6,
+          "zIndex": "1"
+        };
+        Object.keys(ghostStyles).forEach((property)=>{
+          sortableList.ghostEl.style[property] = ghostStyles[property]
+        });
       },
 
       /**
@@ -194,8 +202,9 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         let sortableList = this.parentNode
         sortableList.querySelector('.dragged').classList.remove('dragged');
         if(sortableList.isEdge || sortableList.isIE) {
-          // hide ghostEl
-          sortableList.ghostEl.style.display = 'none';
+          document.body.removeChild(sortableList.ghostEl);
+        } else if (sortableList.isFF) {
+          sortableList.removeChild(sortableList.ghostEl);
         }
       },
 
@@ -286,6 +295,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         var self = this;
         this.isEdge = !!navigator.userAgent.match(/edge/i);
         this.isIE = !!navigator.userAgent.match(/Trident/i);
+        this.isFF = !!navigator.userAgent.match(/firefox/i);
 
         this.async(function() {
           self.addEventListener('drop', this.handledrop, false);
@@ -303,6 +313,23 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
           self._addlisteners();
         });
       },
+
+      buildGhost: function(listItem) {
+        let ghostEl = this.createDraggingGhost(listItem);
+        return ghostEl;
+      },
+
+      createDraggingGhost: function() {
+        let div = document.createElement('div');
+        div.innerHTML = 'I AM A GHOST';
+        return div;
+      },
+
+      _setGhostOffscreen: function(ghostEl) {
+        ghostEl.style.top = "-10000px";
+        ghostEl.style.left = "-10000px";
+      }
+
     });
   </script>
 </dom-module>
