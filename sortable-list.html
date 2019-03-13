@@ -103,21 +103,29 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         this.classList.add('dragged');
 
         if (sortableList.isEdge || sortableList.isIE || sortableList.isFF) {
-          sortableList.ghostEl = sortableList.buildGhost(this);
-          if (sortableList.isFF) {
-            // FF does support setDragImage but drag image does not render anything in a shadowRoot
-            sortableList.appendChild(sortableList.ghostEl);
-            sortableList._setGhostOffscreen(sortableList.ghostEl);
-            evt.dataTransfer.setDragImage(sortableList.ghostEl, 0, 0);
-          } else {
-            // EDGE and IE does not support setDragImage natively
-            // make ghostEl follow the mouse around to create the illusion of dragImage
-            // in order for that to happen, ghostEl must be appended to document.body
-            document.body.appendChild(sortableList.ghostEl);
-            sortableList.setDragImageEdge(this, sortableList, evt.x, evt.y);
-          }
+          sortableList._dragImageWorkarounds(evt.dataTransfer);
         } else {
           evt.dataTransfer.setDragImage(this, 0, 0);
+        }
+      },
+
+      /**
+       * Set drag image workarounds for FF, Edge and IE.
+       * FF supports setDragImage but drag image does not render anything in a shadowRoot,
+       * so we just have to point setDragImage to ghostEl, which has no shadowRoots.
+       * EDGE and IE does not support setDragImage natively,
+       * make ghostEl follow the mouse around to create the illusion of dragImage, hence ghostEl must be appended to document.body
+       * @param {Object} dataTransfer
+       */
+      _dragImageWorkarounds: function(dataTransfer) {
+        this.ghostEl = this.buildGhost(this);
+        if (this.isFF) {
+          this.appendChild(this.ghostEl);
+          this._setGhostOffscreen(this.ghostEl);
+          dataTransfer.setDragImage(this.ghostEl, 0, 0);
+        } else {
+          document.body.appendChild(this.ghostEl);
+          this.setDragImageEdge(this, this, evt.x, evt.y);
         }
       },
 
