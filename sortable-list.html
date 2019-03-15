@@ -104,7 +104,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         this.classList.add('dragged');
 
         if (sortableList.isEdge || sortableList.isIE || sortableList.isFF) {
-          sortableList._dragImageWorkarounds(this, evt.dataTransfer);
+          sortableList._dragImageWorkarounds(this, evt);
         } else {
           evt.dataTransfer.setDragImage(this, 0, 0);
         }
@@ -116,14 +116,14 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
        * so we just have to point setDragImage to ghostEl, which has no shadowRoots.
        * EDGE and IE does not support setDragImage natively,
        * make ghostEl follow the mouse around to create the illusion of dragImage, hence ghostEl must be appended to document.body
-       * @param {Object} dataTransfer
+       * @param {Event} evt
        */
-      _dragImageWorkarounds: function(listItem, dataTransfer) {
+      _dragImageWorkarounds: function(listItem, evt) {
         this.ghostEl = this.buildGhost(listItem);
         if (this.isFF) {
           this.appendChild(this.ghostEl);
           this._setGhostOffscreen(this.ghostEl);
-          dataTransfer.setDragImage(this.ghostEl, 0, 0);
+          evt.dataTransfer.setDragImage(this.ghostEl, 0, 0);
         } else {
           document.body.appendChild(this.ghostEl);
           this.setDragImageEdge(this, this, evt.x, evt.y);
