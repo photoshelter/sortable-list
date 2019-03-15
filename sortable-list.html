@@ -97,6 +97,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
        */
       dragstart: function(evt) {
         var sortableList = this.parentNode;
+        this.originalParentNode = sortableList;
         var index = String(sortableList.getIndex(this));
         evt.dataTransfer.effectAllowed = "move";
         evt.dataTransfer.setData("text", index+','+sortableList.group);
@@ -208,9 +209,9 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
       **/
       dragend: function(evt){
         evt.preventDefault();
-        let sortableList = this.parentNode;
+        let sortableList = this.originalParentNode;
         // remove dragged state styling class
-        sortableList.querySelector('.dragged').classList.remove('dragged');
+        this.classList.remove('dragged');
         if(sortableList.isEdge || sortableList.isIE) {
           // Remove ghost element from document.body
           document.body.removeChild(sortableList.ghostEl);
