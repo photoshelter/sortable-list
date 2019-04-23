@@ -280,7 +280,7 @@ https://github.com/Modernizr/Modernizr/wiki/HTML5-Cross-Browser-Polyfills
         var move = Number(evt.dataTransfer.getData("text").split(',')[0]);
         var group = evt.dataTransfer.getData("text").split(',')[1];
 
-        if(group !== this.group) {
+        if(group !== 'undefined' && group !== this.group) {
           if (this.direction === 'down') {
             current = current + 1;
           }
